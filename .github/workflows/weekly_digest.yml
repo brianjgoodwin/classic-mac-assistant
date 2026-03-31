@@ -1,0 +1,43 @@
+name: Weekly Vintage Apple Digest
+
+on:
+  schedule:
+    # Every Monday at 9:00 AM UTC
+    - cron: "0 9 * * 1"
+  workflow_dispatch: # Allow manual triggering
+
+permissions:
+  contents: write
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run vintage Apple tracker
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        working-directory: scripts
+        run: python vintage_apple_tracker.py
+
+      - name: Commit results
+        run: |
+          git config user.name "Vintage Apple Tracker"
+          git config user.email "tracker[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Weekly digest: $(date +%Y-%m-%d)"
+            git pull --rebase
+            git push
+          fi
